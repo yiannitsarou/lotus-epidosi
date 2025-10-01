@@ -442,41 +442,40 @@ if st.button("🚀 ΕΚΤΕΛΕΣΗ ΚΑΤΑΝΟΜΗΣ", type="primary", use_con
 
             step6_path = ROOT / _timestamped("STEP1_6_PER_SCENARIO", ".xlsx")
             with st.spinner("Τρέχουν τα Βήματα 1→6..."):
-                m.build_step1_6_per_scenario(str(input_path)
-# --- ΝΕΟ: Τρέξε bhma7_v3 (αν υπάρχει) αμέσως μετά το Βήμα 6 ---
-try:
-    if BHMA7_V3_PATH.exists():
-        m7 = _load_module("bhma7_v3", BHMA7_V3_PATH)
-        with st.spinner("Τρέχει το bhma7_v3 (μετά το Βήμα 6)..."):
-            result_path = None
-            # Ευέλικτη αναζήτηση ονόματος συνάρτησης
-            for fn_name in ("apply_after_step6", "run_after_step6", "run", "main", "execute", "process"):
-                fn = getattr(m7, fn_name, None)
-                if callable(fn):
-                    try:
-                        out = fn(str(step6_path))  # συχνή υπογραφή: μόνο input
-                    except TypeError:
-                        # fallback: (input, output)
-                        tentative_out = ROOT / _timestamped("STEP7_FROM_BHMA7", ".xlsx")
-                        try:
-                            out = fn(str(step6_path), str(tentative_out))
-                        except Exception:
-                            out = None
-                    if out and isinstance(out, (str, Path)) and Path(out).exists():
-                        result_path = Path(out)
-                    break
+                m.build_step1_6_per_scenario(str(input_path), str(step6_path), pick_step4=pick_step4_all)
 
-            if result_path and result_path.exists():
-                step6_path = result_path  # κατευθύνουμε το downstream στο output του bhma7_v3
-                st.success(f"✅ Το bhma7_v3 παρήγαγε: {result_path.name}")
-            else:
-                st.info("ℹ️ Το bhma7_v3 φορτώθηκε αλλά δεν παρήγαγε νέο αρχείο. Συνεχίζω στο υπάρχον Βήμα 7.")
-    else:
-        st.caption("ℹ️ Δεν βρέθηκε bhma7_v3.py — προχωρώ κανονικά.")
-except Exception as _e:
-    st.warning(f"⚠️ Το bhma7_v3 παρουσίασε σφάλμα: {_e}. Συνεχίζω κανονικά στο Βήμα 7.")
-, str(step6_path), pick_step4=pick_step4_all)
+            # --- ΝΕΟ: Τρέξε bhma7_v3 (αν υπάρχει) αμέσως μετά το Βήμα 6 ---
+            try:
+                if BHMA7_V3_PATH.exists():
+                    m7 = _load_module("bhma7_v3", BHMA7_V3_PATH)
+                    with st.spinner("Τρέχει το bhma7_v3 (μετά το Βήμα 6)..."):
+                        result_path = None
+                        # Ευέλικτη αναζήτηση ονόματος συνάρτησης
+                        for fn_name in ("apply_after_step6", "run_after_step6", "run", "main", "execute", "process"):
+                            fn = getattr(m7, fn_name, None)
+                            if callable(fn):
+                                try:
+                                    out = fn(str(step6_path))  # συχνή υπογραφή: μόνο input
+                                except TypeError:
+                                    # fallback: (input, output)
+                                    tentative_out = ROOT / _timestamped("STEP7_FROM_BHMA7", ".xlsx")
+                                    try:
+                                        out = fn(str(step6_path), str(tentative_out))
+                                    except Exception:
+                                        out = None
+                                if out and isinstance(out, (str, Path)) and Path(out).exists():
+                                    result_path = Path(out)
+                                break
 
+                        if result_path and result_path.exists():
+                            step6_path = result_path  # κατευθύνουμε το downstream στο output του bhma7_v3
+                            st.success(f"✅ Το bhma7_v3 παρήγαγε: {result_path.name}")
+                        else:
+                            st.info("ℹ️ Το bhma7_v3 φορτώθηκε αλλά δεν παρήγαγε νέο αρχείο. Συνεχίζω στο υπάρχον Βήμα 7.")
+                else:
+                    st.caption("ℹ️ Δεν βρέθηκε bhma7_v3.py — προχωρώ κανονικά.")
+            except Exception as _e:
+                st.warning(f"⚠️ Το bhma7_v3 παρουσίασε σφάλμα: {_e}. Συνεχίζω κανονικά στο Βήμα 7.")
             with st.spinner("Τρέχει το Βήμα 7..."):
                 xls = pd.ExcelFile(step6_path)
                 sheet_names = [s for s in xls.sheet_names if s != "Σύνοψη"]
@@ -735,16 +734,16 @@ else:
                 except Exception:
                     broken = pd.Series(dtype=int)
 
-                # --- ΕΠΙΔΟΣΗ 1 και ΕΠΙΔΟΣΗ 3 ---
-if "ΕΠΙΔΟΣΗ" in df.columns:
-    _perf = df["ΕΠΙΔΟΣΗ"].astype(str).str.strip()
-    perf1 = df[_perf.eq("1")].groupby("ΤΜΗΜΑ").size() if "ΤΜΗΜΑ" in df.columns else pd.Series(dtype=int)
-    perf3 = df[_perf.eq("3")].groupby("ΤΜΗΜΑ").size() if "ΤΜΗΜΑ" in df.columns else pd.Series(dtype=int)
-else:
-    perf1 = pd.Series(dtype=int)
-    perf3 = pd.Series(dtype=int)
-
-stats = pd.DataFrame({
+                    # --- ΕΠΙΔΟΣΗ 1 και ΕΠΙΔΟΣΗ 3 ---
+                    if "ΕΠΙΔΟΣΗ" in df.columns:
+                        _perf = df["ΕΠΙΔΟΣΗ"].astype(str).str.strip()
+                        perf1 = df[_perf.eq("1")].groupby("ΤΜΗΜΑ").size() if "ΤΜΗΜΑ" in df.columns else pd.Series(dtype=int)
+                        perf3 = df[_perf.eq("3")].groupby("ΤΜΗΜΑ").size() if "ΤΜΗΜΑ" in df.columns else pd.Series(dtype=int)
+                    else:
+                        perf1 = pd.Series(dtype=int)
+                        perf3 = pd.Series(dtype=int)
+                        
+                    stats = pd.DataFrame({
                     "ΑΓΟΡΙΑ": boys,
                     "ΚΟΡΙΤΣΙΑ": girls,
                     "ΠΑΙΔΙ_ΕΚΠΑΙΔΕΥΤΙΚΟΥ": edus,
@@ -754,9 +753,9 @@ stats = pd.DataFrame({
                     "ΣΥΓΚΡΟΥΣΗ": conf_by_class,
                     "ΣΠΑΣΜΕΝΗ ΦΙΛΙΑ": broken,
                     "ΣΥΝΟΛΟ ΜΑΘΗΤΩΝ": total,
-        "ΕΠΙΔΟΣΗ 1": perf1,
-        "ΕΠΙΔΟΣΗ 3": perf3
-    }).fillna(0).astype(int)
+                    "ΕΠΙΔΟΣΗ 1": perf1,
+                    "ΕΠΙΔΟΣΗ 3": perf3
+                    }).fillna(0).astype(int)
 
                 try:
                     stats = stats.sort_index(key=lambda x: x.str.extract(r"(\d+)")[0].astype(float))
